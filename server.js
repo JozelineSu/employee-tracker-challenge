@@ -18,7 +18,6 @@ db.connect((err) => {
     console.log('Connected to employee_tracker_db database');
 });
 
-
 function viewAllEmployees() {
     db.query(`SELECT
                 e.id, e.first_name, e.last_name, r.title, d.department_name AS 'department', r.salary, CONCAT(m.first_name, ' ', m.last_name) AS 'manager'
@@ -33,8 +32,94 @@ function viewAllEmployees() {
         console.table(results);
     });
 };
-    
 
+function addEmployee() {
+    const rolesQuery = `SELECT id, title FROM role`;
+    db.query(rolesQuery, (rolesErr, rolesResults) => {
+        if (rolesErr) {
+            console.error('Error fetching roles:', rolesErr);
+            return;
+        }
+        const roleChoices = rolesResults.map((role) => ({
+            name: role.title,
+            value: role.id,
+        }));
+
+        const managersQuery = `SELECT id, CONCAT(first_name, " ", last_name) AS manager_name FROM employee`;
+        db.query(managersQuery, (managerErr, managerResults) => {
+          if (managerErr) {
+            console.error('Error fetching managers', managerErr);
+            return;
+        }  
+        const managerChoices = managerResults.map((manager) => ({
+            name: manager.manager_name,
+            value: manager.id,
+        }));
+        inquirer.prompt([
+        {
+            type: 'input',
+            name: 'first_name',
+            message: 'Enter employee first name:',
+        },
+        {
+            type: 'input',
+            name: 'last_name',
+            message: 'Enter employee last name:',
+        },
+        {
+            type: 'list',
+            name: 'role',
+            message: 'Enter the role of the employee:',
+            choices: roleChoices,
+        },
+        {
+            type: 'list',
+            name: 'manager',
+            message: 'Enter manager name of employee:',
+            choices: managerChoices,
+        },
+    ]).then((results) => {
+        const query = `
+        INSERT INTO employee (first_name, last_name, role_id, manager_id)
+        VALUES (?, ?, ?, ?)`;
+
+        const values = [results.first_name, results.last_name, results.role, results.manager];
+
+        db.query(query, values, (err) => {
+            if (err) {
+                console.error('Error executing query:', err);
+                return;
+            }
+            console.log('Employee added successfully');
+        });
+    }).catch((error) => {
+        console.error(error);
+    });
+        })
+        
+    })
+};
+
+function updateEmployeeRole() {
+
+};
+
+function viewAllRoles() {
+
+}
+
+function addRole() {
+    
+};
+
+function viewAllDepartments() {
+
+};
+
+function addDepartment() {
+
+};
+    
 const choicesArray = ['View All Employees', 'Add Employee', 'Update Employee Role',
                     'View All Roles', 'Add Role', 'View All Departments', 'Add Department'];
 
@@ -49,18 +134,18 @@ inquirer.prompt(
     if(answer.answer === 'View All Employees') {
         viewAllEmployees();
 
-    } else if(answer === 'Add Employee') {
-
+    } else if(answer.answer === 'Add Employee') {
+        addEmployee();
     } else if(answer === 'Update Employee Role') {
-
+        updateEmployeeRole();
     } else if(answer === 'View All Roles') {
-
+        viewAllRoles();
     } else if(answer === 'Add Role') {
-
+        addRole();
     } else if(answer === 'View All Departments') {
-
+        viewAllDepartments();
     } else if(answer === 'Add Department') {
-
+        addDepartment();
     };
     
 }).catch((error) => {

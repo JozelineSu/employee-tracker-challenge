@@ -100,7 +100,58 @@ function addEmployee() {
 };
 
 function updateEmployeeRole() {
+    const employeesQuery = `SELECT id, CONCAT(first_name, " ", last_name) AS employee_name FROM employee`;
+    const rolesQuery = `SELECT id, title FROM role`;
 
+    db.query(employeesQuery, (employeeErr, employeeResults) => {
+        if(employeeErr) {
+            console.error('Error fetching employees:', employeeErr);
+            return;
+        }
+        const employeeList = employeeResults.map((employee) => ({
+            name: employee.employee_name,
+            value: employee.id,
+        }));
+
+        db.query(rolesQuery, (rolesErr, rolesResults) => {
+            if (rolesErr) {
+                console.error('Error fetching roles:', rolesErr);
+                return;
+              }
+            
+            const roleList = rolesResults.map((role) => ({
+                name: role.title,
+                value: role.id,
+            }));
+            inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'employee_name',
+                    message: 'Select employee to update',
+                    choices: employeeList,
+                },
+                {
+                    type: 'list',
+                    name: 'role',
+                    message: 'Assign new role:',
+                    choices: roleList,
+                }
+            ]).then((answer) => {
+                const updateQuery = `UPDATE employee SET role_id = ? WHERE id = ?`;
+                const values = [answer.role, answer.employee_name];
+
+                db.query(updateQuery, values, (updateErr) => {
+                    if(updateErr) {
+                        console.error('Error executing query', updateErr);
+                        return;
+                    }
+                    console.log('Employee role updated successfully!');
+                });
+            }).catch((error) => {
+                console.error(error);
+            });
+        });
+    });
 };
 
 function viewAllRoles() {
@@ -116,9 +167,53 @@ function viewAllRoles() {
 };
 
 function addRole() {
+        const departmentQuery = `SELECT id, department_name FROM department`;
+        db.query(departmentQuery, (dptErr, dptResults) => {
+            if(dptErr) {
+                console.error('Error fetching department names:', dptErr);
+                return;
+            }
+            const dptChoices = dptResults.map((department) => ({
+                name: department.department_name,
+                value: department.id,
+            }));
+        inquirer.prompt([
+            {
+                type: 'input',
+                name: 'title',
+                message: 'Enter name of new role:',
+            },
+            {
+                type: 'input',
+                name: 'salary',
+                message: 'Enter employee salary:',
+            },
+            {
+                type: 'list',
+                name: 'department',
+                message: 'Enter department of employee:',
+                choices: dptChoices,
+            },
+        ]).then((results) => {
+            const query = `
+            INSERT INTO role (title, salary, department_id)
+            VALUES (?, ?, ?)`;
     
+            const values = [results.title, results.salary, results.department];
     
-};
+            db.query(query, values, (err) => {
+                if (err) {
+                    console.error('Error executing query:', err);
+                    return;
+                }
+                console.log('role added successfully');
+            });
+        }).catch((error) => {
+            console.error(error);
+        });
+        });
+    };
+
 
 function viewAllDepartments() {
     db.query(`SELECT d.id, d.department_name FROM department d`, (err, results) => {
@@ -131,7 +226,27 @@ function viewAllDepartments() {
 };
 
 function addDepartment() {
+    inquirer.prompt(
+        {
+            type: 'input',
+            name: 'department_name',
+            message: 'Enter name of new department:',
+        }
+    ).then((result) => {
+        const dptQuery = `INSERT INTO department (department_name)
+        VALUES (?)`;
+        const dptValue = [result.department_name];
 
+        db.query(dptQuery, dptValue, (err) => {
+            if (err) {
+                console.error('Error executing qery:', err);
+                return;
+            }
+            console.log('Successfully added department!');
+        })
+    }).catch((error) => {
+        console.error(error);
+    });
 };
     
 const choicesArray = ['View All Employees', 'Add Employee', 'Update Employee Role',

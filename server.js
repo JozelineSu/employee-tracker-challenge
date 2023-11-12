@@ -96,7 +96,6 @@ function addEmployee() {
         console.error(error);
     });
         })
-        
     })
 };
 
@@ -105,15 +104,30 @@ function updateEmployeeRole() {
 };
 
 function viewAllRoles() {
-
-}
+    db.query(`SELECT r.id, r.title, r.salary, d.department_name 
+            FROM role r
+            LEFT JOIN department d ON r.department_id = d.id `, (err, results) => {
+                if (err) {
+                    console.error('Error executing query:', err);
+                    return;
+                }
+                console.table(results);
+            });
+};
 
 function addRole() {
+    
     
 };
 
 function viewAllDepartments() {
-
+    db.query(`SELECT d.id, d.department_name FROM department d`, (err, results) => {
+        if (err) {
+            console.error('Error executing query:', err);
+            return;
+        }
+        console.table(results);
+    });
 };
 
 function addDepartment() {
@@ -121,7 +135,7 @@ function addDepartment() {
 };
     
 const choicesArray = ['View All Employees', 'Add Employee', 'Update Employee Role',
-                    'View All Roles', 'Add Role', 'View All Departments', 'Add Department'];
+                    'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Quit'];
 
 inquirer.prompt(
     {
@@ -131,20 +145,22 @@ inquirer.prompt(
         choices: choicesArray,
     }
 ).then((answer) => {
-    if(answer.answer === 'View All Employees') {
+    if(answer.answer === 'Quit') {
+        console.log('Exiting the application, bye!');
+        db.end();
+    } else if(answer.answer === 'View All Employees') {
         viewAllEmployees();
-
     } else if(answer.answer === 'Add Employee') {
         addEmployee();
-    } else if(answer === 'Update Employee Role') {
+    } else if(answer.answer === 'Update Employee Role') {
         updateEmployeeRole();
-    } else if(answer === 'View All Roles') {
+    } else if(answer.answer === 'View All Roles') {
         viewAllRoles();
-    } else if(answer === 'Add Role') {
+    } else if(answer.answer === 'Add Role') {
         addRole();
-    } else if(answer === 'View All Departments') {
+    } else if(answer.answer === 'View All Departments') {
         viewAllDepartments();
-    } else if(answer === 'Add Department') {
+    } else if(answer.answer === 'Add Department') {
         addDepartment();
     };
     

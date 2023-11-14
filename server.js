@@ -1,6 +1,7 @@
+// Import Packages
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
-
+// Connect to database
 const db = mysql.createConnection(
     {
       host: 'localhost',
@@ -16,8 +17,10 @@ db.connect((err) => {
         return;
     }
     console.log('Connected to employee_tracker_db database');
-});
 
+    userPrompt(); // Run first prompt
+});
+// Get all Employees
 function viewAllEmployees() {
     db.query(`SELECT
                 e.id, e.first_name, e.last_name, r.title, d.department_name AS 'department', r.salary, CONCAT(m.first_name, ' ', m.last_name) AS 'manager'
@@ -31,8 +34,10 @@ function viewAllEmployees() {
         }
         console.table(results);
     });
-};
 
+    userPrompt();
+};
+//Add New Employee
 function addEmployee() {
     const rolesQuery = `SELECT id, title FROM role`;
     db.query(rolesQuery, (rolesErr, rolesResults) => {
@@ -45,7 +50,7 @@ function addEmployee() {
             value: role.id,
         }));
 
-        const managersQuery = `SELECT id, CONCAT(first_name, " ", last_name) AS manager_name FROM employee`;
+        const managersQuery = `SELECT id, CONCAT(first_name, " ", last_name) AS manager_name FROM employee WHERE manager_id IS NULL`;
         db.query(managersQuery, (managerErr, managerResults) => {
           if (managerErr) {
             console.error('Error fetching managers', managerErr);
@@ -55,6 +60,9 @@ function addEmployee() {
             name: manager.manager_name,
             value: manager.id,
         }));
+
+        managerChoices.push({ name: 'Null', value: null });
+
         inquirer.prompt([
         {
             type: 'input',
@@ -83,7 +91,9 @@ function addEmployee() {
         INSERT INTO employee (first_name, last_name, role_id, manager_id)
         VALUES (?, ?, ?, ?)`;
 
-        const values = [results.first_name, results.last_name, results.role, results.manager];
+        const managerId = results.manager === 'Null' ? null : results.manager;
+
+        const values = [results.first_name, results.last_name, results.role, managerId];
 
         db.query(query, values, (err) => {
             if (err) {
@@ -92,13 +102,14 @@ function addEmployee() {
             }
             console.log('Employee added successfully');
         });
+        userPrompt();
     }).catch((error) => {
         console.error(error);
     });
         })
     })
 };
-
+//Update role of employee
 function updateEmployeeRole() {
     const employeesQuery = `SELECT id, CONCAT(first_name, " ", last_name) AS employee_name FROM employee`;
     const rolesQuery = `SELECT id, title FROM role`;
@@ -147,13 +158,14 @@ function updateEmployeeRole() {
                     }
                     console.log('Employee role updated successfully!');
                 });
+                userPrompt();
             }).catch((error) => {
                 console.error(error);
             });
         });
     });
 };
-
+// Get All Roles
 function viewAllRoles() {
     db.query(`SELECT r.id, r.title, r.salary, d.department_name 
             FROM role r
@@ -164,8 +176,9 @@ function viewAllRoles() {
                 }
                 console.table(results);
             });
+            userPrompt();
 };
-
+// Add New Role
 function addRole() {
         const departmentQuery = `SELECT id, department_name FROM department`;
         db.query(departmentQuery, (dptErr, dptResults) => {
@@ -208,13 +221,13 @@ function addRole() {
                 }
                 console.log('role added successfully');
             });
+            userPrompt();
         }).catch((error) => {
             console.error(error);
         });
         });
     };
-
-
+// Get All Departments
 function viewAllDepartments() {
     db.query(`SELECT d.id, d.department_name FROM department d`, (err, results) => {
         if (err) {
@@ -222,9 +235,11 @@ function viewAllDepartments() {
             return;
         }
         console.table(results);
+       
     });
+     userPrompt();
 };
-
+// Add New Department
 function addDepartment() {
     inquirer.prompt(
         {
@@ -243,43 +258,52 @@ function addDepartment() {
                 return;
             }
             console.log('Successfully added department!');
-        })
+        });
+        userPrompt();
     }).catch((error) => {
         console.error(error);
     });
 };
     
 const choicesArray = ['View All Employees', 'Add Employee', 'Update Employee Role',
-                    'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Quit'];
-
-inquirer.prompt(
+'View All Roles', 'Add Role', 'View All Departments', 'Add Department', 'Quit'];
+// Initial Prompt
+function userPrompt() {
+    inquirer.prompt(
     {
         type: 'list',
         name: 'answer',
         message: 'What would you like to do?',
         choices: choicesArray,
     }
-).then((answer) => {
-    if(answer.answer === 'Quit') {
-        console.log('Exiting the application, bye!');
-        db.end();
-    } else if(answer.answer === 'View All Employees') {
-        viewAllEmployees();
-    } else if(answer.answer === 'Add Employee') {
-        addEmployee();
-    } else if(answer.answer === 'Update Employee Role') {
-        updateEmployeeRole();
-    } else if(answer.answer === 'View All Roles') {
-        viewAllRoles();
-    } else if(answer.answer === 'Add Role') {
-        addRole();
-    } else if(answer.answer === 'View All Departments') {
-        viewAllDepartments();
-    } else if(answer.answer === 'Add Department') {
-        addDepartment();
-    };
-    
-}).catch((error) => {
-    console.error(error);
-})
-
+    ).then(function ({answer}) {
+        switch (answer) {
+            case 'View All Employees':
+                viewAllEmployees();
+                break;
+            case 'Add Employee':
+                addEmployee();
+                break;
+            case 'Update Employee Role':
+                updateEmployeeRole();
+                break;
+            case 'View All Roles':
+                viewAllRoles();
+                break;
+            case 'Add Role':
+                addRole();
+                break;
+            case 'View All Departments':
+                viewAllDepartments();
+                break;
+            case 'Add Department':
+                addDepartment();
+                break;
+            case 'Quit':
+                db.end();
+                break;
+        }
+    }).catch((error) => {
+        console.error(error);
+    })
+}
